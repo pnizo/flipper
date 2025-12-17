@@ -1,66 +1,209 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { createRoom, getRoomByCode, requestJoinRoom } from '@/lib/firestore';
+import styles from './page.module.css';
 
 export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+  const { user, userProfile, loading, isConfigured, signInWithGoogle, signOut } = useAuth();
+  const router = useRouter();
+  const [roomCode, setRoomCode] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
+  const [error, setError] = useState('');
+  const [maxParticipants, setMaxParticipants] = useState(10); // Default 10
+
+  // ... (auth check)
+
+  const handleCreateRoom = async () => {
+    if (!user || !userProfile) return;
+
+    setIsCreating(true);
+    setError('');
+
+    try {
+      const room = await createRoom(user.uid, maxParticipants);
+      router.push(`/room/${room.id}/host`);
+    } catch (err) {
+      console.error('Failed to create room:', err);
+      setError('ルームの作成に失敗しました');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  // ... (handleJoinRoom)
+
+  // ... (auth check for render)
+
+  // Render
+  // ...
+  <div className={styles.actionCard}>
+    <h2>司会者としてルームを作成</h2>
+    <p>新しいクイズルームを作成して、参加者を招待しましょう</p>
+    <div className={styles.createForm}>
+      <label className={styles.inputLabel}>
+        最大参加人数:
+        <input
+          type="number"
+          min={1}
+          max={100}
+          value={maxParticipants}
+          onChange={(e) => setMaxParticipants(Math.min(100, Math.max(1, parseInt(e.target.value) || 1)))}
+          className={styles.numberInput}
         />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+        人
+      </label>
+      <button
+        onClick={handleCreateRoom}
+        disabled={isCreating}
+        className="btn btn-primary"
+      >
+        {isCreating ? '作成中...' : 'ルームを作成'}
+      </button>
     </div>
+  </div>
+
+  const handleJoinRoom = async () => {
+    if (!user || !userProfile || !roomCode.trim()) return;
+
+    setIsJoining(true);
+    setError('');
+
+    try {
+      const room = await getRoomByCode(roomCode.trim());
+      if (!room) {
+        setError('ルームが見つかりません');
+        return;
+      }
+
+      // Request to join
+      await requestJoinRoom(
+        room.id,
+        user.uid,
+        userProfile.displayName || '匿名',
+        userProfile.photoURL
+      );
+
+      router.push(`/room/${room.id}/answer`);
+    } catch (err) {
+      console.error('Failed to join room:', err);
+      setError('ルームへの参加に失敗しました');
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <main className={styles.main}>
+        <div className={styles.loading}>読み込み中...</div>
+      </main>
+    );
+  }
+
+  return (
+    <main className={styles.main}>
+      <div className={styles.container}>
+        <h1 className={styles.title}>
+          <span className={styles.titleIcon}>📋</span>
+          Flipper
+        </h1>
+        <p className={styles.subtitle}>クイズ番組風フリップ回答システム</p>
+
+        {!user ? (
+          <div className={styles.authSection}>
+            <button onClick={signInWithGoogle} className="btn btn-primary">
+              Googleでログイン
+            </button>
+          </div>
+        ) : (
+          <div className={styles.userSection}>
+            <div className={styles.userInfo}>
+              {userProfile?.photoURL && (
+                <img
+                  src={userProfile.photoURL}
+                  alt="Avatar"
+                  className={styles.avatar}
+                />
+              )}
+              <div className={styles.userDetails}>
+                <span className={styles.displayName}>
+                  {userProfile?.displayName || 'ゲスト'}
+                </span>
+                <span className={styles.email}>{user.email}</span>
+              </div>
+              <button onClick={() => router.push('/settings')} className={styles.settingsBtn}>
+                ⚙️
+              </button>
+              <button onClick={() => router.push('/history')} className={styles.settingsBtn}>
+                📚
+              </button>
+              <button onClick={signOut} className="btn btn-secondary">
+                ログアウト
+              </button>
+            </div>
+
+            <div className={styles.actions}>
+              <div className={styles.actionCard}>
+                <h2>司会者としてルームを作成</h2>
+                <p>新しいクイズルームを作成して、参加者を招待しましょう</p>
+                <div className={styles.createForm}>
+                  <label className={styles.inputLabel}>
+                    最大参加人数
+                    <input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={maxParticipants}
+                      onChange={(e) => setMaxParticipants(Math.min(100, Math.max(1, parseInt(e.target.value) || 1)))}
+                      className={styles.numberInput}
+                    />
+                    人
+                  </label>
+                  <button
+                    onClick={handleCreateRoom}
+                    disabled={isCreating}
+                    className="btn btn-primary"
+                  >
+                    {isCreating ? '作成中...' : 'ルームを作成'}
+                  </button>
+                </div>
+              </div>
+
+              <div className={styles.divider}>
+                <span>または</span>
+              </div>
+
+              <div className={styles.actionCard}>
+                <h2>回答者としてルームに参加</h2>
+                <p>ルームコードを入力して参加しましょう</p>
+                <div className={styles.joinForm}>
+                  <input
+                    type="text"
+                    value={roomCode}
+                    onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                    placeholder="ルームコード (例: ABC123)"
+                    maxLength={6}
+                    className="input"
+                  />
+                  <button
+                    onClick={handleJoinRoom}
+                    disabled={isJoining || roomCode.length < 6}
+                    className="btn btn-success"
+                  >
+                    {isJoining ? '参加中...' : '参加する'}
+                  </button>
+                </div>
+              </div>
+
+              {error && <div className={styles.error}>{error}</div>}
+            </div>
+          </div>
+        )}
+      </div>
+    </main>
   );
 }
