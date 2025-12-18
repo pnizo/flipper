@@ -36,8 +36,38 @@
   padding: 0.5rem 1rem;
   border-radius: 999px;
   font-weight: 600;
+  background: var(--secondary);
+  color: white;
+}
+
+.roomCodeContainer {
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  font-weight: 600;
   background: var(--primary);
   color: white;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.2s;
+}
+
+.roomCodeContainer:hover {
+  transform: scale(1.05);
+}
+
+.copyBadge {
+  position: absolute;
+  top: 110%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--success);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10;
 }
 
 .loading {

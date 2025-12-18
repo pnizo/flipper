@@ -25,6 +25,29 @@
   font-family: var(--font-geist-mono);
   font-size: 1rem;
   color: #94a3b8;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+  position: relative;
+}
+
+.roomCode:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.copyBadge {
+  position: absolute;
+  top: 110%;
+  right: 0;
+  background: var(--success);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10;
 }
 
 .content {
@@ -111,6 +134,13 @@
   padding: 0.75rem 1rem;
   font-weight: 600;
   text-align: center;
+  flex: 1;
+}
+
+.hiddenFooter {
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
   background: rgba(0, 0, 0, 0.2);
 }
 
@@ -180,6 +210,20 @@
 .answerName {
   font-weight: 600;
   font-size: 1.125rem;
+}
+
+.answerUserInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.participantAvatarSmall {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .correctBadge {
@@ -260,4 +304,79 @@
   50% {
     transform: scale(1.02);
   }
+}
+
+.waitingRoom {
+  display: flex;
+  flex-direction: column;
+  gap: 4rem;
+  align-items: center;
+  padding: 2rem 0;
+}
+
+.waitingHeader {
+  text-align: center;
+}
+
+.participantSection {
+  width: 100%;
+  max-width: 1000px;
+}
+
+.participantCount {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.participantGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 2rem;
+  justify-items: center;
+}
+
+.participantCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.participantAvatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.participantName {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: white;
+  text-align: center;
+}
+
+.noParticipants {
+  grid-column: 1 / -1;
+  font-size: 1.25rem;
+  color: #475569;
+  font-style: italic;
 }

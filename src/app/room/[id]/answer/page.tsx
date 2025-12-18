@@ -29,8 +29,17 @@ export default function AnswerPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [lastSubmitTime, setLastSubmitTime] = useState(0);
+  const [copied, setCopied] = useState(false);
 
   const autoSaveIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleCopyCode = () => {
+    if (!room?.roomCode) return;
+    const url = `${window.location.origin}/?code=${room.roomCode}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   // Load room and participation
   useEffect(() => {
@@ -196,8 +205,13 @@ export default function AnswerPage() {
         </button>
         <h1 className={styles.title}>回答画面</h1>
         {room?.roomCode && (
-          <div className={styles.status}>
+          <div
+            className={styles.roomCodeContainer}
+            onClick={handleCopyCode}
+            title="クリックして参加用URLをコピー"
+          >
             Room: <span style={{ fontFamily: 'var(--font-geist-mono)', fontWeight: 700 }}>{room.roomCode}</span>
+            {copied && <span className={styles.copyBadge}>コピーしました！</span>}
           </div>
         )}
         <div className={styles.status}>
