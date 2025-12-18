@@ -9,6 +9,7 @@ import {
   RoomParticipant,
   Question,
   subscribeToRoom,
+  subscribeToMyParticipation,
   getMyParticipation,
   getQuestion,
   submitAnswer,
@@ -41,6 +42,9 @@ export default function AnswerPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const [hasJoinedOnce, setHasJoinedOnce] = useState(false);
+  const hasRedirectedRef = useRef(false);
+
   // Load room and participation
   useEffect(() => {
     if (authLoading) return;
@@ -49,33 +53,8 @@ export default function AnswerPage() {
       return;
     }
 
-    const loadData = async () => {
-      const myParticipation = await getMyParticipation(roomId, user.uid);
-
-      if (!myParticipation) {
-        // Try to join if not already a participant
-        try {
-          const newParticipation = await requestJoinRoom(
-            roomId,
-            user.uid,
-            userProfile?.displayName || '匿名',
-            userProfile?.photoURL || null
-          );
-          setParticipation(newParticipation);
-        } catch (err) {
-          console.error('Failed to join room:', err);
-        }
-      } else {
-        setParticipation(myParticipation);
-      }
-
-      setLoading(false);
-    };
-
-    loadData();
-
     // Subscribe to room changes
-    const unsub = subscribeToRoom(roomId, async (roomData) => {
+    const unsubRoom = subscribeToRoom(roomId, async (roomData) => {
       setRoom(roomData);
 
       if (roomData?.currentQuestionId) {
@@ -86,8 +65,51 @@ export default function AnswerPage() {
       }
     });
 
-    return () => unsub();
-  }, [roomId, user, userProfile, authLoading, router]);
+    // Subscribe to my participation
+    const unsubParticipation = subscribeToMyParticipation(roomId, user.uid, async (participationData) => {
+      if (participationData) {
+        setParticipation(participationData);
+        setHasJoinedOnce(true);
+        setLoading(false);
+      } else {
+        // If participation record is missing, it might be a kick or we haven't joined yet
+
+        // If we have joined once before and now data is null, it's a kick
+        if (hasJoinedOnce && !hasRedirectedRef.current) {
+          hasRedirectedRef.current = true;
+          alert('ルームから退室させられました');
+          router.push('/');
+          return;
+        }
+
+        // If we haven't joined once yet, try to join (initial entry)
+        if (!hasJoinedOnce && !loading) {
+          try {
+            const newParticipation = await requestJoinRoom(
+              roomId,
+              user.uid,
+              userProfile?.displayName || '匿名',
+              userProfile?.photoURL || null
+            );
+            setParticipation(newParticipation);
+            setHasJoinedOnce(true);
+          } catch (err) {
+            console.error('Failed to join room:', err);
+            if (err instanceof Error && err.message.includes('退室させられています')) {
+              alert(err.message);
+              router.push('/');
+            }
+          }
+          setLoading(false);
+        }
+      }
+    });
+
+    return () => {
+      unsubRoom();
+      unsubParticipation();
+    };
+  }, [roomId, user, userProfile, authLoading, router, loading, hasJoinedOnce]);
 
   // Auto-save answer periodically
   useEffect(() => {

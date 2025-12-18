@@ -102,19 +102,43 @@ export default function HostPage() {
   }, [roomId, room?.currentQuestionId]);
 
   const handleKick = async (participant: RoomParticipant) => {
-    if (!confirm(`${participant.displayName} をキック（退室）しますか？`)) return;
-    await kickParticipant(
-      roomId,
-      participant.id,
-      participant.odId,
-      participant.displayName,
-      participant.photoURL
-    );
+    console.log('handleKick called for:', participant.displayName);
+    if (!confirm(`${participant.displayName} をキック（退室）しますか？`)) {
+      console.log('Kick canceled by user');
+      return;
+    }
+
+    try {
+      console.log('Calling kickParticipant...');
+      await kickParticipant(
+        roomId,
+        participant.id,
+        participant.odId,
+        participant.displayName,
+        participant.photoURL
+      );
+      console.log('kickParticipant successful');
+    } catch (err) {
+      console.error('kickParticipant failed:', err);
+      setError('キックに失敗しました');
+    }
   };
 
   const handleUnban = async (odId: string, displayName: string) => {
-    if (!confirm(`${displayName} のBANを解除しますか？`)) return;
-    await unbanUser(roomId, odId);
+    console.log('handleUnban called for:', displayName);
+    if (!confirm(`${displayName} のBANを解除しますか？`)) {
+      console.log('Unban canceled by user');
+      return;
+    }
+
+    try {
+      console.log('Calling unbanUser...');
+      await unbanUser(roomId, odId);
+      console.log('unbanUser successful');
+    } catch (err) {
+      console.error('unbanUser failed:', err);
+      setError('BAN解除に失敗しました');
+    }
   };
 
   const handleCreateQuestion = async () => {

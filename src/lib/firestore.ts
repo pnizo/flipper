@@ -312,6 +312,27 @@ export async function getMyParticipation(
   return { id: docSnap.id, ...docSnap.data() } as RoomParticipant;
 }
 
+export function subscribeToMyParticipation(
+  roomId: string,
+  odId: string,
+  callback: (participation: RoomParticipant | null) => void
+): () => void {
+  const database = getDb();
+  const q = query(
+    collection(database, 'rooms', roomId, 'participants'),
+    where('odId', '==', odId)
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    if (snapshot.empty) {
+      callback(null);
+      return;
+    }
+    const docSnap = snapshot.docs[0];
+    callback({ id: docSnap.id, ...docSnap.data() } as RoomParticipant);
+  });
+}
+
 // Question functions
 export async function createQuestion(
   roomId: string,

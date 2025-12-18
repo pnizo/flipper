@@ -65,7 +65,11 @@ function HomeContent() {
       router.push(`/room/${room.id}/answer`);
     } catch (err) {
       console.error('Failed to join room:', err);
-      setError('ルームへの参加に失敗しました');
+      const message = err instanceof Error ? err.message : 'ルームへの参加に失敗しました';
+      setError(message);
+      if (message.includes('退室させられています')) {
+        alert(message);
+      }
     } finally {
       setIsJoining(false);
     }
