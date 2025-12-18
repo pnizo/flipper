@@ -36,6 +36,18 @@
 .roomCode {
   font-size: 1rem;
   color: #94a3b8;
+  cursor: pointer;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.roomCode:hover {
+  background-color: var(--input-bg);
 }
 
 .roomCode span {
@@ -43,6 +55,21 @@
   font-weight: 700;
   color: var(--primary);
   font-size: 1.25rem;
+}
+
+.copyBadge {
+  position: absolute;
+  bottom: 110%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--success);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10;
 }
 
 .loading,

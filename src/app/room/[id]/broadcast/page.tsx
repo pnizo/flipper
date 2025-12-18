@@ -9,6 +9,8 @@ import {
   subscribeToRoom,
   getQuestion,
   subscribeToAnswers,
+  subscribeToParticipants,
+  RoomParticipant,
 } from '@/lib/firestore';
 import styles from './page.module.css';
 
@@ -19,12 +21,28 @@ export default function BroadcastPage() {
   const [room, setRoom] = useState<Room | null>(null);
   const [question, setQuestion] = useState<Question | null>(null);
   const [answers, setAnswers] = useState<Answer[]>([]);
+  const [participants, setParticipants] = useState<RoomParticipant[]>([]);
+  const [copied, setCopied] = useState(false);
   const canvasRefs = useRef<Map<string, HTMLCanvasElement>>(new Map());
+
+  const handleCopyCode = () => {
+    if (!room?.roomCode) return;
+    const url = `${window.location.origin}/?code=${room.roomCode}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
   // Remove local isRevealed state and effect. logic derived from room.status and answer.isRevealed
 
   // Subscribe to room changes
   useEffect(() => {
     const unsub = subscribeToRoom(roomId, setRoom);
+    return () => unsub();
+  }, [roomId]);
+
+  // Subscribe to participants
+  useEffect(() => {
+    const unsub = subscribeToParticipants(roomId, setParticipants);
     return () => unsub();
   }, [roomId]);
 
@@ -104,7 +122,14 @@ export default function BroadcastPage() {
       <div className={styles.header}>
         <h1 className={styles.title}>📋 Flipper</h1>
         {room?.roomCode && (
-          <div className={styles.roomCode}>Room: {room.roomCode}</div>
+          <div
+            className={styles.roomCode}
+            onClick={handleCopyCode}
+            title="クリックして参加用URLをコピー"
+          >
+            Room: {room?.roomCode}
+            {copied && <span className={styles.copyBadge}>コピーしました！</span>}
+          </div>
         )}
       </div>
 
@@ -147,7 +172,19 @@ export default function BroadcastPage() {
                       } ${styles.revealed}`}
                   >
                     <div className={styles.answerHeader}>
-                      <span className={styles.answerName}>{answer.displayName}</span>
+                      <div className={styles.answerUserInfo}>
+                        {answer.odId && (
+                          <img
+                            src={participants.find(p => p.odId === answer.odId)?.photoURL || '/default-avatar.png'}
+                            alt=""
+                            className={styles.participantAvatarSmall}
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
+                            }}
+                          />
+                        )}
+                        <span className={styles.answerName}>{answer.displayName}</span>
+                      </div>
                       {answer.isCorrect && (
                         <span className={styles.correctBadge}>正解!</span>
                       )}
@@ -168,7 +205,19 @@ export default function BroadcastPage() {
                     <div className={styles.hiddenContent}>
                       <span className={styles.hiddenIcon}>?</span>
                     </div>
-                    <div className={styles.hiddenName}>{answer.displayName}</div>
+                    <div className={styles.hiddenFooter}>
+                      {answer.odId && (
+                        <img
+                          src={participants.find(p => p.odId === answer.odId)?.photoURL || '/default-avatar.png'}
+                          alt=""
+                          className={styles.participantAvatarSmall}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
+                          }}
+                        />
+                      )}
+                      <div className={styles.hiddenName}>{answer.displayName}</div>
+                    </div>
                   </div>
                 );
               }
@@ -182,11 +231,34 @@ export default function BroadcastPage() {
           </div>
         )}
 
-        {!question && (
-          <div className={styles.idle}>
-            <div className={styles.idleIcon}>📺</div>
-            <h2>放送待機中</h2>
-            <p>クイズが始まるまでお待ちください</p>
+        {!question && room?.status === 'waiting' && (
+          <div className={styles.waitingRoom}>
+            <div className={styles.waitingHeader}>
+              <div className={styles.idleIcon}>📺</div>
+              <h2>放送待機中</h2>
+              <p>クイズが始まるまでお待ちください</p>
+            </div>
+
+            <div className={styles.participantSection}>
+              <h3 className={styles.participantCount}>
+                参加者: {participants.length}名
+              </h3>
+              <div className={styles.participantGrid}>
+                {participants.map((p) => (
+                  <div key={p.id} className={styles.participantCard}>
+                    <img
+                      src={p.photoURL || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'}
+                      alt={p.displayName}
+                      className={styles.participantAvatar}
+                    />
+                    <div className={styles.participantName}>{p.displayName}</div>
+                  </div>
+                ))}
+                {participants.length === 0 && (
+                  <p className={styles.noParticipants}>参加者を待っています...</p>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>

@@ -1,21 +1,28 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { createRoom, getRoomByCode, requestJoinRoom } from '@/lib/firestore';
 import styles from './page.module.css';
 
-export default function Home() {
+function HomeContent() {
   const { user, userProfile, loading, isConfigured, signInWithGoogle, signOut } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [roomCode, setRoomCode] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
   const [error, setError] = useState('');
   const [maxParticipants, setMaxParticipants] = useState(10); // Default 10
 
-  // ... (auth check)
+  // Handle URL query parameter
+  useEffect(() => {
+    const code = searchParams.get('code');
+    if (code) {
+      setRoomCode(code.toUpperCase());
+    }
+  }, [searchParams]);
 
   const handleCreateRoom = async () => {
     if (!user || !userProfile) return;
@@ -33,38 +40,6 @@ export default function Home() {
       setIsCreating(false);
     }
   };
-
-  // ... (handleJoinRoom)
-
-  // ... (auth check for render)
-
-  // Render
-  // ...
-  <div className={styles.actionCard}>
-    <h2>司会者としてルームを作成</h2>
-    <p>新しいクイズルームを作成して、参加者を招待しましょう</p>
-    <div className={styles.createForm}>
-      <label className={styles.inputLabel}>
-        最大参加人数:
-        <input
-          type="number"
-          min={1}
-          max={100}
-          value={maxParticipants}
-          onChange={(e) => setMaxParticipants(Math.min(100, Math.max(1, parseInt(e.target.value) || 1)))}
-          className={styles.numberInput}
-        />
-        人
-      </label>
-      <button
-        onClick={handleCreateRoom}
-        disabled={isCreating}
-        className="btn btn-primary"
-      >
-        {isCreating ? '作成中...' : 'ルームを作成'}
-      </button>
-    </div>
-  </div>
 
   const handleJoinRoom = async () => {
     if (!user || !userProfile || !roomCode.trim()) return;
@@ -93,6 +68,23 @@ export default function Home() {
       setError('ルームへの参加に失敗しました');
     } finally {
       setIsJoining(false);
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const pastedText = e.clipboardData.getData('text');
+    // Extract room code from URL like ...?code=ABC123 or just the code at the end
+    const urlMatch = pastedText.match(/[?&]code=([A-Z0-9]{6})/i);
+    if (urlMatch) {
+      setRoomCode(urlMatch[1].toUpperCase());
+      e.preventDefault();
+    } else if (pastedText.includes('/') && pastedText.length > 6) {
+      // If it looks like a URL but doesn't have ?code=, try to find a 6-char code
+      const possibleCode = pastedText.split('/').pop()?.split('?')[0];
+      if (possibleCode && /^[A-Z0-9]{6}$/i.test(possibleCode)) {
+        setRoomCode(possibleCode.toUpperCase());
+        e.preventDefault();
+      }
     }
   };
 
@@ -185,6 +177,7 @@ export default function Home() {
                     type="text"
                     value={roomCode}
                     onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                    onPaste={handlePaste}
                     placeholder="ルームコード (例: ABC123)"
                     maxLength={6}
                     className="input"
@@ -205,5 +198,17 @@ export default function Home() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <main className={styles.main}>
+        <div className={styles.loading}>読み込み中...</div>
+      </main>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }

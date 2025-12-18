@@ -4,6 +4,8 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import {
   User,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut as firebaseSignOut,
   GoogleAuthProvider,
   onAuthStateChanged,
@@ -25,6 +27,7 @@ interface AuthContextType {
   loading: boolean;
   isConfigured: boolean;
   signInWithGoogle: () => Promise<void>;
+  signInWithGoogleRedirect: () => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
 }
@@ -79,13 +82,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
+  // Handle redirect result
+  useEffect(() => {
+    if (!auth) return;
+    getRedirectResult(auth).catch((error) => {
+      console.error('Error getting redirect result:', error);
+    });
+  }, []);
+
   const signInWithGoogle = async () => {
     if (!auth) {
       console.error('Firebase auth is not configured');
       return;
     }
     const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error: any) {
+      console.error('SignInWithPopup error:', error);
+      // Fallback to redirect if popup is blocked or fails
+      if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-by-user') {
+        // Optional: you could automatically try redirect here
+      }
+    }
+  };
+
+  const signInWithGoogleRedirect = async () => {
+    if (!auth) return;
+    const provider = new GoogleAuthProvider();
+    await signInWithRedirect(auth, provider);
   };
 
   const signOut = async () => {
@@ -111,6 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         isConfigured,
         signInWithGoogle,
+        signInWithGoogleRedirect,
         signOut,
         updateProfile,
       }}

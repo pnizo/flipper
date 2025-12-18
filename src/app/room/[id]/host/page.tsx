@@ -185,6 +185,16 @@ export default function HostPage() {
     }
   };
 
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyCode = () => {
+    if (!room?.roomCode) return;
+    const url = `${window.location.origin}/?code=${room.roomCode}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   if (loading || authLoading) {
     return (
       <main className={styles.main}>
@@ -213,8 +223,13 @@ export default function HostPage() {
           ← 終了・退出
         </button>
         <h1 className={styles.title}>司会者画面</h1>
-        <div className={styles.roomCode}>
+        <div
+          className={styles.roomCode}
+          onClick={handleCopyCode}
+          title="クリックして参加用URLをコピー"
+        >
           ルームコード: <span>{room?.roomCode}</span>
+          {copied && <span className={styles.copyBadge}>コピーしました！</span>}
         </div>
         <button
           onClick={() => window.open(`/room/${roomId}/broadcast`, '_blank')}
