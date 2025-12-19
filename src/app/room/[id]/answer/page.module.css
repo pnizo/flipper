@@ -11,6 +11,7 @@
   background: var(--card-bg);
   border-radius: 12px;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
 }
 
 .backButton {

@@ -236,6 +236,12 @@ export default function AnswerPage() {
             {copied && <span className={styles.copyBadge}>コピーしました！</span>}
           </div>
         )}
+        <button
+          onClick={() => window.open(`/room/${roomId}/broadcast`, '_blank')}
+          className="btn btn-secondary"
+        >
+          放送画面を開く
+        </button>
         <div className={styles.status}>
           {room?.status === 'waiting' && '待機中'}
           {room?.status === 'questioning' && '回答中'}
